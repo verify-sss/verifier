@@ -22,14 +22,16 @@ hash the bot showed before the round started (`,serverseed`).
 ## Deploying to GitHub Pages
 
 1. Create a **public** repo (any name — e.g. `pf-verify`).
-2. Upload `index.html` to the repo root.
+2. Upload **both** `index.html` and `info.html` to the repo root.
+   (`info.html` is the "per-game nonce breakdown" sub-page that `index.html`
+   links to.)
 3. Settings → Pages → Source = `Deploy from a branch`, branch = `main`, folder = `/ (root)`.
 4. After ~30s the page is live at `https://<user>.github.io/<repo>/`.
 5. Set that URL as `VERIFIER_URL` in `cogs/new_verify.py:51`.
 
-That's it. The page has no build step, no dependencies, no external assets —
-everything is inline in `index.html`. Web Crypto API (built into every modern
-browser) handles HMAC-SHA512 + SHA256.
+That's it. The pages have no build step, no dependencies, no external assets —
+everything is inline. Web Crypto API (built into every modern browser) handles
+HMAC-SHA512 + SHA256.
 
 ## Trust model
 

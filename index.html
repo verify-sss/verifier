@@ -110,21 +110,60 @@
 
   <details class="card">
     <summary>How does this prove the game is fair?</summary>
+    <p style="margin:10px 0 6px;color:var(--dim);font-size:13px">
+      Cryptographic hashes are a <b>one-way street</b>: easy in one direction,
+      impossible in the other. The bot uses that asymmetry to lock itself in
+      <i>before</i> you play. Here's the full chain:
+    </p>
     <ol>
-      <li>Before you play, the bot shows you the <b>SHA-256 hash</b> of its secret
-        server seed (<code>,serverseed</code>). A hash can't be reversed, so you
-        learn nothing about the seed — but the bot is now <i>locked in</i>.</li>
-      <li>You set your own <b>client seed</b> (<code>,clientseed</code>). The bot
-        can't predict or change it.</li>
-      <li>Every roll is <code>HMAC-SHA512(server seed, "{client seed}-{nonce}")</code>.
-        The <b>nonce</b> counts up by one each roll.</li>
-      <li>The first 13 hex characters of that hash become a number from 0 to 1
-        (<code>÷ 2^52</code>), then scaled into the roll's range.</li>
-      <li>Afterwards the bot <b>reveals</b> the server seed (<code>,verify</code>).
-        You hash it here — if it matches the commitment from step 1 <i>and</i> every
-        roll recomputes to what you saw, the bot didn't cheat. It couldn't have, without
-        breaking SHA-512.</li>
+      <li><b>Before you play</b> — the bot shows you the <b>SHA-256 hash</b>
+        of its secret server seed (run <code>,serverseed</code> to get it).
+        That hash is the <i>commitment</i> — a fingerprint of the seed. SHA-256
+        can't be reversed, so you learn nothing about the seed itself, but the
+        bot is now <i>locked in</i>: any future seed that doesn't match this
+        fingerprint is provably fake.</li>
+      <li><b>You set your own client seed</b> (<code>,clientseed</code>). It's
+        public, but the bot can't predict or change it — so the bot can't
+        pre-pick a server seed that gives <i>you</i> a bad outcome.</li>
+      <li><b>Every roll</b> is <code>HMAC-SHA512(server seed, "{client seed}-{nonce}")</code>.
+        Both seeds and the nonce all go in; you need all three to compute the
+        output, and the bot can't reverse the output to learn the inputs.
+        The <b>nonce</b> counts up by one each roll, so every roll is unique.</li>
+      <li><b>The math</b> — the first 13 hex characters of that hash become a
+        fraction from 0 to 1 (<code>÷ 2^52</code>), then scaled into the roll's
+        range. Same math everywhere, no special cases.</li>
+      <li><b>Afterwards the bot reveals the server seed</b> (<code>,verify</code>).
+        You hash it here — and this page checks: does <code>SHA256(revealed&nbsp;seed)</code>
+        match the commitment from step 1? Does each roll recompute to what
+        the bot showed you? If yes to both, the bot didn't cheat. <b>It
+        couldn't have, without breaking SHA-256 / SHA-512</b> — the same math
+        protecting HTTPS, Bitcoin, and every signed software update on Earth.</li>
     </ol>
+    <p style="margin:10px 0 6px;color:var(--dim);font-size:13px">
+      <b>The asymmetry, in numbers:</b><br>
+      Forward (you verifying a roll): ~microseconds on any phone.<br>
+      Backward (bot forging a fake seed that matches the commitment):
+      roughly <code>2<sup>256</sup></code> operations — more than every computer
+      ever built running for the age of the universe. Physically impossible,
+      not just "hard".
+    </p>
+    <p style="margin:10px 0 0;color:var(--dim);font-size:13px">
+      <b>Envelope analogy:</b> before the round, the bot seals the server seed
+      in a tamper-evident envelope and shows you a photo of the envelope's
+      serial number. You can't read what's inside the envelope from the photo,
+      but if the bot tries to swap the envelope after the round, the serial
+      won't match the photo — and you'll catch it instantly.
+    </p>
+    <p style="margin:10px 0 0;color:var(--dim);font-size:13px">
+      <b>"Can't I peek at the seed mid-game to predict future rolls?"</b><br>
+      No. Any command that <i>reveals</i> the server seed (<code>.verify</code>,
+      <code>,verifylink</code>) is gated by the <code>busy_check</code> — if
+      you're in an active game, those commands refuse until the game ends.
+      And every successful reveal <i>rotates</i> the seed first: the next roll
+      uses a brand-new secret seed that nobody (not even the bot's process,
+      until that round ends) has shown you. So leaked seeds can only ever
+      reveal the <i>past</i>.
+    </p>
   </details>
 </div>
 
@@ -218,13 +257,24 @@ async function run(){
     cEl.innerHTML = "";
   }
 
-  // math breakdown
-  $("m1").innerHTML = `1) message = "<b>${client}-${nonce}</b>"`;
-  $("m2").innerHTML = `2) HMAC-SHA512(server, message) = <b>${h}</b>`;
-  $("m3").innerHTML = `3) first 13 hex = <b>${h.slice(0,13)}</b> → ${bits} ÷ 2^52 = <b>${frac}</b>`;
+  // math breakdown — labeled steps with the formula on each line so it's
+  // clear what's happening and exactly which inputs feed which output
+  $("m1").innerHTML =
+    `<span style="color:var(--txt)">Step 1 — build the message</span><br>` +
+    `&nbsp;&nbsp;client seed + "-" + nonce = "<b>${client}-${nonce}</b>"`;
+  $("m2").innerHTML =
+    `<span style="color:var(--txt)">Step 2 — HMAC-SHA512(server seed, message)</span><br>` +
+    `&nbsp;&nbsp;128-hex-char output → <b style="word-break:break-all">${h}</b>`;
+  $("m3").innerHTML =
+    `<span style="color:var(--txt)">Step 3 — turn it into a 0–1 fraction</span><br>` +
+    `&nbsp;&nbsp;take the first 13 hex chars = <b>${h.slice(0,13)}</b><br>` +
+    `&nbsp;&nbsp;parse as integer = <b>${bits}</b><br>` +
+    `&nbsp;&nbsp;divide by 2<sup>52</sup> = <b>${frac}</b> &nbsp;(uniform in [0, 1))`;
   $("m4").innerHTML = isRaw
-    ? `4) range is 0–1, so roll = the raw value = <b>${rollShown}</b>`
-    : `4) floor(${frac} × (${max}−${min}+1) + ${min}) = <b>${roll}</b>`;
+    ? `<span style="color:var(--txt)">Step 4 — range is 0–1, so roll = the raw fraction</span><br>` +
+      `&nbsp;&nbsp;roll = <b>${rollShown}</b>`
+    : `<span style="color:var(--txt)">Step 4 — scale into the roll's range</span><br>` +
+      `&nbsp;&nbsp;floor(${frac} × (${max}−${min}+1) + ${min}) = <b>${roll}</b>`;
 }
 
 // Pre-fill from URL params, then auto-verify if a server+client seed are present.

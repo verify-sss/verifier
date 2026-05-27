@@ -86,6 +86,9 @@
     <label>Expected roll (optional — what the bot showed you)</label>
     <input id="roll" placeholder="leave blank to just compute" inputmode="numeric">
 
+    <label>Game result (optional — what the roll meant in-game, e.g. "Masori body (f)")</label>
+    <input id="result" placeholder="auto-filled from the verify link" spellcheck="false">
+
     <label>Committed server-seed hash (optional — from <code style="font-family:var(--mono)">,serverseed</code> before you played)</label>
     <input id="commit" placeholder="sha256 the bot showed you earlier" spellcheck="false">
 
@@ -103,6 +106,7 @@
     <div id="verdict" class="verdict"></div>
     <div class="big" id="computed"></div>
     <div class="result" id="rangeline"></div>
+    <div id="resultline" class="result"></div>
     <div id="commitline" class="result"></div>
     <details>
       <summary>Show the math</summary>
@@ -207,6 +211,7 @@ async function run(){
   const min    = parseInt($("min").value.trim() || "1", 10);
   const max    = parseInt($("max").value.trim() || "100", 10);
   const expectedRaw = $("roll").value.trim();
+  const gameResult  = $("result").value.trim();
   const commit = $("commit").value.trim().toLowerCase();
 
   if (!server || !client){
@@ -237,6 +242,17 @@ async function run(){
     vEl.innerHTML = matches
       ? "✅ MATCH — this roll is legit"
       : `❌ NO MATCH — bot showed ${expectedRaw}, math gives ${rollShown}`;
+  }
+
+  // game-result line — what the roll MEANT in-game (chest item, RPS pick,
+  // etc.). Optional; only shows if the verify link carried a result label.
+  // Escape with textContent + a span so user-supplied text can't inject HTML.
+  const rEl = $("resultline");
+  if (gameResult){
+    rEl.innerHTML = `Game result: <b id="gameresult"></b>`;
+    document.getElementById("gameresult").textContent = gameResult;
+  } else {
+    rEl.innerHTML = "";
   }
 
   // commitment check
@@ -273,11 +289,12 @@ async function run(){
 }
 
 // Pre-fill from URL params, then auto-verify if a server+client seed are present.
-// Param names: server, client, nonce, min, max, roll, commit
+// Param names: server, client, nonce, min, max, roll, commit, result
 (function(){
   const p = new URLSearchParams(location.search);
   const map = {server:"server", client:"client", nonce:"nonce",
-               min:"min", max:"max", roll:"roll", commit:"commit"};
+               min:"min", max:"max", roll:"roll", commit:"commit",
+               result:"result"};
   let haveCore = false;
   for (const [param, id] of Object.entries(map)){
     const v = p.get(param);

@@ -26,8 +26,7 @@
     text-transform:uppercase;letter-spacing:.04em}
   td{padding:8px 6px;border-bottom:1px solid var(--line);vertical-align:top}
   td:first-child{font-weight:600;white-space:nowrap}
-  td:nth-child(2){color:var(--txt);font-family:var(--mono);font-size:13px;
-    white-space:nowrap;color:var(--accent)}
+  td:nth-child(2){color:var(--accent);font-family:var(--mono);font-size:13px;white-space:nowrap}
   td:last-child{color:var(--dim)}
   tr:last-child td{border-bottom:none}
   code{background:var(--panel2);padding:1px 5px;border-radius:4px;
@@ -44,120 +43,149 @@
   <h1>📊 Per-Game Nonce Breakdown</h1>
   <p class="sub">How many nonces each game spends from your PF stream, and why.
     Useful if you're manually tracking which roll is which — but if you click a
-    pre-filled link from <code>,verifylink</code> / <code>.verify</code> in
-    Discord, the nonce is set for you and you can ignore this page.</p>
+    pre-filled link from the <code>verifylink</code> command in Discord
+    (<code>,</code> on PPF, <code>.</code> on SSS), the nonce is set for you
+    and you can ignore this page entirely.</p>
 
-  <h2>Simple roll commands</h2>
+  <h2>🎲 Dice</h2>
   <div class="card">
     <table>
       <tr><th>Command</th><th>Nonces</th><th>Why</th></tr>
-      <tr><td><code>,roll</code></td><td>1</td><td>Single 1-100 roll.</td></tr>
-      <tr><td><code>,burn</code></td><td>1 (dicing) <br>or 2 (dice-duel)</td><td>One die in normal channels, two in dice-duel.</td></tr>
+      <tr><td><code>,roll</code></td><td>1</td><td>Single 1–100 roll.</td></tr>
+      <tr><td><code>,burn</code></td><td>1 (dicing)<br>2 (dice-duel)</td><td>One die in normal channels, two in dice-duel.</td></tr>
       <tr><td><code>,dnd</code> (predict)</td><td>1</td><td>One uniform pick from your prediction range.</td></tr>
-      <tr><td>Dice duel</td><td>1 per player (1-100) <br>or 2 per player (1-6 ×2)</td><td>One per player per round depending on mode.</td></tr>
-      <tr><td><code>,roll</code>-lucky combo</td><td>2 per "lucky" slot + the dice roll itself</td><td>Direction bit + threshold pick + the actual dice roll.</td></tr>
-      <tr><td><code>,p lucky</code> (luckydip predict)</td><td>2</td><td>The luckydip prediction number + the dice roll it's checked against.</td></tr>
+      <tr><td>Dice duel</td><td>1 per player (1–100)<br>2 per player (1–6 ×2)</td><td>Per player per round, depending on mode.</td></tr>
+      <tr><td><code>,p lucky</code> (luckydip predict)</td><td>2</td><td>The luckydip prediction + the dice roll it's checked against.</td></tr>
       <tr><td><code>,dp lucky</code></td><td>3</td><td>Two luckydip predictions + the dice roll.</td></tr>
+      <tr><td>Combo dice</td><td>2 per "lucky" slot + 1 per "plucky" + each dice roll itself</td><td>Pre-rolls for direction/threshold/prediction, then the actual dice.</td></tr>
+      <tr><td><code>,p lucky</code> direct command</td><td>2</td><td>Luckydip prediction + the dice roll it's checked against.</td></tr>
     </table>
   </div>
 
-  <h2>Chests / keys</h2>
+  <h2>📦 Chests / keys</h2>
   <div class="card">
     <table>
-      <tr><th>Outcome</th><th>Nonces</th><th>Why</th></tr>
-      <tr><td>Key fails</td><td>1</td><td>Just the key-tier roll. No item drawn.</td></tr>
-      <tr><td>Key passes</td><td>2</td><td>Key roll + item-draw roll.</td></tr>
-      <tr><td>Lucky / mythic / gigalucky</td><td>2 (+1 if special)</td><td>Same key + item; extra nonce if a special-item drop check fires.</td></tr>
-      <tr><td>Void / abyss chest</td><td>2-3</td><td>Key + item + VOID_MULTIS multi pick.</td></tr>
-      <tr><td>Nex chest</td><td>3-5</td><td>Key + sub-table pick + prize pick + NC_MULTIS scalar (+ NC_FUN_MULTIS on PPF).</td></tr>
-      <tr><td>Mystery chest</td><td>2-6+</td><td>Key count (1-3) × open rolls + optional cabbage-transform / boost-mode rolls.</td></tr>
-      <tr><td>Pirate chest open</td><td>2-5</td><td>Key + chain (skull → pirate → map → loot).</td></tr>
-      <tr><td>Rainbow / mythic special item</td><td>3-4</td><td>Key + item + rainbow trigger + surge / split micro-rolls.</td></tr>
+      <tr><th>Chest type</th><th>Nonces</th><th>Why</th></tr>
+      <tr><td>Novice (tier 0)</td><td>2</td><td>Key roll + item draw. Novice keys <i>can't fail</i>, so the item always rolls.</td></tr>
+      <tr><td>Elite / Master / Insane / Ultimate <br>(3rd age tiers)</td><td>1 (fail) or 2 (pass)</td><td>Key roll on a 1–20 scale (always 1 nonce). These tiers can fail the threshold (Elite needs 10+, Master 15+, Insane 18+, Ultimate 20) — on fail, the verify panel reads "No prize (needed N+ to win)" and no item rolls. Pass = an item-draw nonce.</td></tr>
+      <tr><td>Lucky / Mythic / Gigalucky / Twilight</td><td>1 (+1 if special drop fires)</td><td>Item draw is one nonce. No key-fail check — these always "open". A separate ~1/500 special-drop check may add a nonce.</td></tr>
+      <tr><td>Void / Abyss chest</td><td>2–3</td><td>Key + item + VOID_MULTIS multi pick.</td></tr>
+      <tr><td>Nex chest</td><td>3–5</td><td>Key + sub-table pick + prize + NC_MULTIS scalar (+ NC_FUN_MULTIS on PPF).</td></tr>
+      <tr><td>Mystery chest</td><td>2–6+</td><td>Key count (1–3) × open rolls + optional cabbage-transform / boost-mode rolls.</td></tr>
+      <tr><td>Pirate chest open</td><td>2–5</td><td>Key + chain (skull → pirate → map → loot).</td></tr>
+      <tr><td>Rainbow / mythic specials</td><td>3–4</td><td>Key + item + rainbow trigger + surge / split micro-rolls.</td></tr>
+      <tr><td>Nex chests game</td><td>10 (layout) + 1-2 per real open (+1 pity)</td><td>10-chest layout shuffle (which are skulls/purples/normals) + per-open multi rolls when a non-skull is hit. Pity Nex Token (1/15 if you won nothing) is also PF.</td></tr>
     </table>
     <p class="note"><b>Random-tier mode</b> (<code>,clue lucky</code>) adds 1 nonce for the tier pick.</p>
   </div>
 
-  <h2>Slot spins</h2>
+  <h2>🎰 Slots</h2>
   <div class="card">
     <table>
-      <tr><th>Game</th><th>Nonces / spin</th><th>Why</th></tr>
-      <tr><td>Rupert (Pinkie Slots)</td><td>17-50+</td><td>One per cell (15 base + respin loose cells); free spins add more; the engine's PFRoller buffers in increments of 12.</td></tr>
-      <tr><td>Swirly base spin</td><td>~18 typical, up to ~25</td><td>Key-guarantee check + (key-board pick OR bonus-flags + 17 belt-symbol picks).</td></tr>
-      <tr><td>Swirly bonus board</td><td>30-100+</td><td>Initial belt (17) + extra wilds + rescue placements + per-cluster wild-spawn / explosion / cascade rolls. Wheels add a few each.</td></tr>
-      <tr><td>Slingo — card gen</td><td>25</td><td>5 columns × 5-card sample = 25 nonces (Fisher-Yates).</td></tr>
-      <tr><td>Slingo — per spin</td><td>5-10</td><td>One symbol-pick per column (5); extras when a column rolls "number" (one more for the number itself).</td></tr>
-      <tr><td>Video Poker — initial deck</td><td>52</td><td>Full 52-card deck shuffle via Fisher-Yates.</td></tr>
-      <tr><td>Video Poker — multi-hand draws</td><td>52 × num_hands</td><td>Available deck rebuild + per-virtual-hand temp-deck reshuffle.</td></tr>
+      <tr><th>Game</th><th>Nonces</th><th>Why</th></tr>
+      <tr><td>Rupert (Pinkie Slots)</td><td>17–50+ per spin</td><td>One per cell (15 base + respin loose cells). Free spins add more; the engine buffers in increments of 12.</td></tr>
+      <tr><td>Swirly — base spin</td><td>~18 typical (up to ~25)</td><td>Key-guarantee check + (key-board pick OR bonus-flags + 17 belt-symbol picks).</td></tr>
+      <tr><td>Swirly — bonus board</td><td>30–100+</td><td>Initial belt (17) + extra wilds + rescue placements + per-cluster wild-spawn / explosion / cascade rolls. Bonus wheels add a few each.</td></tr>
+      <tr><td>Slingo — card gen</td><td>25</td><td>5 columns × 5-card sample = 25 nonces (Fisher-Yates per column).</td></tr>
+      <tr><td>Slingo — per spin</td><td>5–10</td><td>One symbol-pick per column (5); extras when a column rolls "number" (one more for the number itself).</td></tr>
     </table>
   </div>
 
-  <h2>Mines</h2>
+  <h2>🃏 Casino / table games</h2>
+  <div class="card">
+    <table>
+      <tr><th>Game</th><th>Nonces</th><th>Why</th></tr>
+      <tr><td>Blackjack — shoe shuffle</td><td>416</td><td>8-deck shoe (8 × 52 = 416 cards) shuffled once via Fisher-Yates at the start of each hand. One nonce per card swap.</td></tr>
+      <tr><td>Video Poker — initial deck</td><td>52</td><td>Full 52-card deck shuffled via Fisher-Yates (one nonce per swap).</td></tr>
+      <tr><td>Video Poker — multi-hand draws</td><td>52 × num_hands</td><td>For multi-hand mode: available-deck rebuild + per-virtual-hand temp-deck reshuffle.</td></tr>
+      <tr><td>Video Poker — bonus game (lifelines)</td><td>3–8 per bonus</td><td>Max-vs-min lifeline-count gate + lifeline-type sample + per-row position sample + auto-pick fallback.</td></tr>
+    </table>
+  </div>
+
+  <h2>💣 Mines</h2>
   <div class="card">
     <table>
       <tr><th>Mode</th><th>Nonces</th><th>Why</th></tr>
       <tr><td>Regular Mines (N bombs)</td><td>N</td><td>One per bomb placement (Fisher-Yates over 25 cells).</td></tr>
-      <tr><td><code>,mines lucky</code></td><td>N+1</td><td>One extra nonce for the random bomb-count roll (1-24).</td></tr>
+      <tr><td><code>,mines lucky</code></td><td>N + 1</td><td>One extra nonce up front for the random bomb-count roll (1–24).</td></tr>
       <tr><td>Goal-mines (5×5 columns)</td><td>5 × (bombs ÷ 5)</td><td>Per-column bomb sample.</td></tr>
     </table>
   </div>
 
-  <h2>Interactive minigames</h2>
+  <h2>🎮 Interactive minigames</h2>
   <div class="card">
     <table>
       <tr><th>Game</th><th>Nonces</th><th>Why</th></tr>
-      <tr><td>Hi-Lo (per round)</td><td>1 (first round) or 0 (subsequent — card_2 carries over)</td><td>Bot-seeded (multi-player).</td></tr>
+      <tr><td>Hi-Lo (per round)</td><td>1 (first round) / 0 (subsequent)</td><td>Bot-seeded (multi-player). card_2 carries to the next round so only the very first card is rolled.</td></tr>
       <tr><td>Russian Roulette</td><td>1 per click</td><td>Survive / die roll.</td></tr>
-      <tr><td>RPS — "Random" pick</td><td>1 per player</td><td>Only if a player picks Random or doesn't respond.</td></tr>
-      <tr><td>RuneDraw — first turn</td><td>1</td><td>Who goes first (p1 vs p2). Seeded by p1.</td></tr>
+      <tr><td>RPS — "Random" pick</td><td>1 per player</td><td>Only if a player picks Random or doesn't respond in time.</td></tr>
+      <tr><td>RuneDraw — first turn</td><td>1</td><td>Who goes first (p1 vs p2). Seeded by p1 (offer poster).</td></tr>
       <tr><td>RuneDraw — per draw</td><td>1</td><td>Each rune draw, seeded by the drawing player.</td></tr>
-      <tr><td>Battleship — ship placement</td><td>3-30+ per player</td><td>Per ship: direction bit + 2 coords; retried if collision. Seeded per player.</td></tr>
-      <tr><td>Battleship — turn / auto-shot</td><td>1</td><td>Seeded by attacker.</td></tr>
-      <tr><td>Dom Onion Tower (Sea Serpent)</td><td>~50-60 per game</td><td>10 rows × (5-bomb sample + position shuffle) + auto-pick fallbacks.</td></tr>
-      <tr><td>Gigalucky Pick</td><td>20-40+</td><td>Board layout + per-bettor pick + dynamic-slot roll.</td></tr>
-      <tr><td>Pirate Plunder</td><td>15-30+</td><td>Probabilities pick + 60-item sample + pirate item + 75-slot shuffle.</td></tr>
-      <tr><td>Death Wheel</td><td>1 + wheel physics</td><td>Starting-wheel pick + the sim_wheel landing rolls.</td></tr>
-      <tr><td>Pirate Map (Parrots Game)</td><td>~1-3 per stage</td><td>3× over/under direction + treasure-position roll + auto-pick fallback.</td></tr>
+      <tr><td>Battleship — ship placement</td><td>3–30+ per player</td><td>Per ship: direction bit + 2 coords; retried if collision. Seeded per player.</td></tr>
+      <tr><td>Battleship — turn / auto-shot</td><td>1</td><td>Seeded by the attacker.</td></tr>
+      <tr><td>Dom Onion Tower (Sea Serpent)</td><td>~50–60 per game</td><td>10 rows × (5-bomb sample + position shuffle) + auto-pick fallbacks.</td></tr>
+      <tr><td>Gigalucky Pick</td><td>20–40+</td><td>Board layout + per-bettor pick + dynamic-slot roll.</td></tr>
+      <tr><td>Pirate Plunder</td><td>15–30+</td><td>Probabilities pick + 60-item sample + pirate item + 75-slot shuffle.</td></tr>
+      <tr><td>Death Wheel</td><td>1 + wheel physics</td><td>Starting-wheel pick + sim_wheel landing rolls.</td></tr>
+      <tr><td>Pirate Map (Parrots Game)</td><td>~1–3 per stage</td><td>3× over/under direction + treasure-position roll + auto-pick fallback.</td></tr>
+      <tr><td>Forge of Fortune</td><td>~12–15 per game</td><td>3 weapons × 4 strike rolls + placement timeouts + boss-fight rolls.</td></tr>
+      <tr><td>DoND box layout / banker</td><td>~30+ per session</td><td>Box shuffle (host-seeded) + per-round banker-offer variance + colour-vote ties + final reveal. Auto-picks for AFK players also PF.</td></tr>
+      <tr><td>DoND entry minigames</td><td>3–10 per attempt</td><td>Five stages — imp jars (sample), dice roll (1), dummy hit-chance + damage (1–2), lucky-reveal shuffle, coin flip (1). A 6-box solo banker mini follows if you survive — adds layout shuffle + per-round picks.</td></tr>
+      <tr><td>Peel / Deal / Reveal (chest minigame)</td><td>5 (+1 if timeout)</td><td>5-multi-position shuffle + an extra nonce if the player times out and the bot auto-peels.</td></tr>
+      <tr><td>Doors minigame</td><td>N (= door count)</td><td>Which door hides which minigame. Host-seeded.</td></tr>
+      <tr><td>Partyhat / Cracker (vs bot)</td><td>3</td><td>Good-vs-bad table assignment (1) + the player's prize roll (1) + the bot's prize roll (1).</td></tr>
     </table>
   </div>
 
-  <h2>Boss / cabbage royale</h2>
+  <h2>👹 Boss / Cabbage Royale</h2>
   <div class="card">
     <table>
       <tr><th>Game</th><th>Nonces</th><th>Why</th></tr>
-      <tr><td>Cabbage Royale chest 5</td><td>0-3</td><td>Alt-tier offer (1) + Random-tier resolution (1) + post-game robbery trigger (1).</td></tr>
-      <tr><td>CR drunk casket</td><td>1 per fallback + 1 per Cosmic talisman + per-game bonuses</td><td>Most casket loot picks happen via the host picker, so PF only fires on defensive fallbacks. Cosmic talisman roll is per-event.</td></tr>
-      <tr><td>CR F2P (Brutus)</td><td>1-3</td><td>Risky-kill prob + loot-table fallback.</td></tr>
-      <tr><td>CR Rares (EC chest)</td><td>2-5</td><td>Gem roll + per-bettor variance + armour-piece trigger + chest-count.</td></tr>
-      <tr><td>Bossing trip rewards</td><td>1-8 per killer</td><td>Bracket + cascade-ramp chance gates + table picks. Killer's own seed.</td></tr>
-      <tr><td>Clue casket — sub-reward</td><td>5-20+</td><td>Variable per tier; weighted reward table picks + drop chains.</td></tr>
-      <tr><td>Clue casket — evil-aura mini</td><td>0 (skipped) or 6-9</td><td>Trigger check + robbery / fairy gates + 3 slot picks + 3 multi picks + emote sample + timeout fallback.</td></tr>
+      <tr><td>Cabbage Royale chest 5</td><td>0–3</td><td>Alt-tier offer (1) + Random-tier resolution (1) + post-game robbery trigger (1).</td></tr>
+      <tr><td>CR drunk casket</td><td>1 per fallback + 1 per Cosmic talisman</td><td>Most casket loot picks come from the host picker; PF only fires on defensive fallbacks. Cosmic talisman triggers a roll per event.</td></tr>
+      <tr><td>CR F2P (Brutus)</td><td>1–3</td><td>Risky-kill prob + loot-table fallback.</td></tr>
+      <tr><td>CR Rares (EC chest)</td><td>2–5</td><td>Gem roll + per-bettor variance + armour-piece trigger + chest-count.</td></tr>
+      <tr><td>Bossing trip rewards</td><td>1–8 per killer</td><td>Bracket + cascade-ramp chance gates + table picks. Killer's own seed.</td></tr>
+      <tr><td>Clue casket — sub-rewards</td><td>5–20+</td><td>Variable per tier; weighted reward table picks + drop chains.</td></tr>
+      <tr><td>Clue casket — evil-aura mini</td><td>0 or 6–9</td><td>Trigger check (0 nonces if skipped). On trigger: robbery / fairy gates + 3 slot picks + 3 multi picks + emote sample + timeout fallback.</td></tr>
     </table>
   </div>
 
-  <h2>Other</h2>
+  <h2>🎯 Wheels / lotteries</h2>
   <div class="card">
     <table>
       <tr><th>Game</th><th>Nonces</th><th>Why</th></tr>
-      <tr><td>JP3a (3rd age daily-jp)</td><td>~26</td><td>15-item sample + 10-slot shuffle + auto-pick fallback.</td></tr>
-      <tr><td>Combo dice</td><td>2 per "lucky" slot + 1 per "plucky" + each dice roll</td><td>Pre-rolls for direction/threshold + the actual dice.</td></tr>
-      <tr><td>Crazy Staking</td><td>16-32 per game</td><td>16-weapon sample + 16-bonus picks + per-Random-bettor host pick.</td></tr>
-      <tr><td>Forge of Fortune</td><td>~12-15 per game</td><td>3 weapons × 4 strike rolls + placement timeouts + boss-fight rolls.</td></tr>
-      <tr><td>DoND box layout / banker</td><td>varies (~30+ per session)</td><td>Box shuffle + per-round banker offers + final pick variance.</td></tr>
-      <tr><td>Wheels (lucky/mythic/pirate)</td><td>20-25 per spin</td><td>Wheel content sample (16-20 slots) + shuffle + physics (direction / friction / angle / nudge).</td></tr>
+      <tr><td>Wheels (lucky / mythic / pirate / etc.)</td><td>20–25 per spin</td><td>Wheel content sample (16–20 slots) + shuffle + physics (direction / friction / angle / nudge).</td></tr>
+      <tr><td>JP3a (3rd-age daily-JP)</td><td>~26</td><td>15-item sample + 10-slot shuffle + auto-pick fallback.</td></tr>
+      <tr><td>Crazy Staking</td><td>16–32 per game</td><td>16-weapon sample + 16-bonus picks + per-Random-bettor host pick.</td></tr>
+      <tr><td>Lottery draw</td><td>4 (+1 per tie-break)</td><td>Four winning numbers (1–20). Bot-seeded. Tie-breaks for the half-match jackpot / bonus-ball winner add one nonce each.</td></tr>
+      <tr><td>Weekly raffle winner</td><td>1</td><td>Single weighted-choice winner pick. Bot-seeded.</td></tr>
+      <tr><td>Rank winners draw</td><td>N picks</td><td>Weighted sample without replacement, N nonces for N winners.</td></tr>
+      <tr><td>Match Game</td><td>1 + 1 per <code>,match</code></td><td>Winning ticket pick (bot-seeded — same outcome for every player). Then one nonce per player attempt, seeded by the player — that's the roll you see in your <code>,verify</code> panel.</td></tr>
+      <tr><td>Rainbow Mania (live game)</td><td>0–12+ per game</td><td>Bot-seeded so every bettor verifies the same chain. Per game: hot/cold sniper triggers + slot + flower (0–6), 2-pair fairy gates (0–2), Triple Rainbow rescue gate (0–1), Volcanic / Arctic / Double Wildshot tower-lives picks (0–3). Plus full wheel spins if Rainbow Rush / Rainbow Mania triggers (see "Wheels" row above for the per-spin cost).</td></tr>
+      <tr><td>Banana tiebreaker</td><td>1 (emote sample) + 1 (banana position) + 1 (turn order) + per-bot-auto-pick + per-timeout-pick</td><td>Bot-seeded; layout + turn order + any auto-picks.</td></tr>
     </table>
   </div>
 
   <p class="note">
-    <b>Multi-player games</b> (lottery draw, weekly raffle, rank winners,
-    Hi-Lo card draws, Banana, VP lobby shared deck) are seeded by the bot's
-    own PF stream — admins can verify via the bot's <code>.verify</code>.
+    <b>Multi-player games</b> (lottery draw, weekly raffle, rank winners, Hi-Lo
+    card draws, Banana, VP lobby shared deck) are seeded by the bot's own PF
+    stream — admins can verify via the bot's <code>.verify</code>.
+  </p>
+  <p class="note">
+    <b>Other PF-covered events</b> (no per-spin form here because they fire
+    automatically): <code>,konewrandom</code> (random knockout stakers pulled
+    in for the caller to bet on), rank-up rewards (forced 3rd-age tier pick +
+    raid-key sampling at the partyhat ranks), and the Multi-game gamble from
+    Match Game / Instant Jackpot. All seeded by the relevant player so the
+    drops are replayable.
   </p>
   <p class="note">
     <b>Why so much variance?</b> Bigger games make more rolls. A simple
     <code>,roll</code> is one nonce because it's one die. A slot spin needs a
-    roll per cell because each cell is independent — that's what makes it
-    fair (and verifiable per-cell). The bot stores every nonce, so you can
-    audit any roll at any time, no matter how many came before.
+    roll per cell because each cell is independent — that's what makes it fair
+    (and verifiable per-cell). The bot stores every nonce, so you can audit
+    any roll at any time, no matter how many came before.
   </p>
 
   <a href="index.html" class="back">← Back to verifier</a>

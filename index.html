@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Provably-Fair Roll Verifier</title>
+<style>
+  :root{
+    --bg:#0e1116; --panel:#161b22; --panel2:#1c232c; --line:#2a323d;
+    --txt:#e6edf3; --dim:#9aa7b4; --accent:#3fb950; --bad:#f85149;
+    --accentdim:#1f6feb; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.5;padding:24px 16px}
+  .wrap{max-width:760px;margin:0 auto}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--dim);font-size:14px;margin:0 0 20px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:18px;margin-bottom:16px}
+  label{display:block;font-size:12px;color:var(--dim);margin:10px 0 4px;
+    text-transform:uppercase;letter-spacing:.04em}
+  input{width:100%;background:var(--panel2);border:1px solid var(--line);
+    color:var(--txt);border-radius:8px;padding:9px 11px;font-family:var(--mono);
+    font-size:13px}
+  input:focus{outline:none;border-color:var(--accentdim)}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .row > div{flex:1;min-width:120px}
+  button{background:var(--accentdim);color:#fff;border:0;border-radius:8px;
+    padding:11px 18px;font-size:15px;font-weight:600;cursor:pointer;margin-top:16px}
+  button:hover{filter:brightness(1.1)}
+  .result{font-size:15px;margin-top:6px}
+  .verdict{font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .ok{color:var(--accent)} .no{color:var(--bad)}
+  .big{font-size:40px;font-weight:800;font-family:var(--mono);margin:2px 0}
+  .kv{font-family:var(--mono);font-size:12px;color:var(--dim);
+    word-break:break-all;margin:2px 0}
+  .kv b{color:var(--txt)}
+  details{margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+  summary{cursor:pointer;color:var(--accentdim);font-size:14px}
+  details ol{padding-left:20px;color:var(--dim);font-size:13px}
+  details code{background:var(--panel2);padding:1px 5px;border-radius:4px;
+    font-family:var(--mono);color:var(--txt)}
+  .hint{color:var(--dim);font-size:12px;margin-top:4px}
+  .step{font-family:var(--mono);font-size:12px;color:var(--dim);
+    word-break:break-all;margin:3px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🎲 Provably-Fair Roll Verifier</h1>
+  <p class="sub">Recompute any roll yourself, right here in your browser. Nothing is
+  sent anywhere — this page has no server and no outside scripts. Right-click → View
+  Source to confirm.</p>
+
+  <div class="card">
+    <p style="margin:0 0 6px;font-size:14px;color:var(--dim)">
+      Each roll is <code style="font-family:var(--mono)">HMAC-SHA512(server seed, "client&nbsp;seed-nonce")</code>.
+      The server seed was committed (its SHA-256 shown) <i>before</i> you played, so it
+      couldn't be changed after the fact. Your client seed is yours. So neither side can
+      rig the outcome.
+    </p>
+
+    <label>Server seed (revealed after the round)</label>
+    <input id="server" placeholder="e.g. gAAAAAB...=" spellcheck="false">
+
+    <label>Client seed (yours)</label>
+    <input id="client" placeholder="your client seed" spellcheck="false">
+
+    <div class="row">
+      <div>
+        <label>Nonce</label>
+        <input id="nonce" placeholder="0" inputmode="numeric">
+      </div>
+      <div>
+        <label>Min</label>
+        <input id="min" placeholder="1" inputmode="numeric">
+      </div>
+      <div>
+        <label>Max</label>
+        <input id="max" placeholder="100" inputmode="numeric">
+      </div>
+    </div>
+
+    <label>Expected roll (optional — what the bot showed you)</label>
+    <input id="roll" placeholder="leave blank to just compute" inputmode="numeric">
+
+    <label>Committed server-seed hash (optional — from <code style="font-family:var(--mono)">,serverseed</code> before you played)</label>
+    <input id="commit" placeholder="sha256 the bot showed you earlier" spellcheck="false">
+
+    <button id="go">Verify roll</button>
+    <p class="hint">Tip: server seed + client seed stay the same for a whole session —
+      bump the <b>nonce</b> and re-verify to check every roll in that session.</p>
+  </div>
+
+  <div class="card" id="out" style="display:none">
+    <div id="verdict" class="verdict"></div>
+    <div class="big" id="computed"></div>
+    <div class="result" id="rangeline"></div>
+    <div id="commitline" class="result"></div>
+    <details>
+      <summary>Show the math</summary>
+      <div class="step" id="m1"></div>
+      <div class="step" id="m2"></div>
+      <div class="step" id="m3"></div>
+      <div class="step" id="m4"></div>
+    </details>
+  </div>
+
+  <details class="card">
+    <summary>How does this prove the game is fair?</summary>
+    <ol>
+      <li>Before you play, the bot shows you the <b>SHA-256 hash</b> of its secret
+        server seed (<code>,serverseed</code>). A hash can't be reversed, so you
+        learn nothing about the seed — but the bot is now <i>locked in</i>.</li>
+      <li>You set your own <b>client seed</b> (<code>,clientseed</code>). The bot
+        can't predict or change it.</li>
+      <li>Every roll is <code>HMAC-SHA512(server seed, "{client seed}-{nonce}")</code>.
+        The <b>nonce</b> counts up by one each roll.</li>
+      <li>The first 13 hex characters of that hash become a number from 0 to 1
+        (<code>÷ 2^52</code>), then scaled into the roll's range.</li>
+      <li>Afterwards the bot <b>reveals</b> the server seed (<code>,verify</code>).
+        You hash it here — if it matches the commitment from step 1 <i>and</i> every
+        roll recomputes to what you saw, the bot didn't cheat. It couldn't have, without
+        breaking SHA-512.</li>
+    </ol>
+  </details>
+</div>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+
+function hex(buf){
+  return [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, "0")).join("");
+}
+async function hmacSha512(keyStr, msgStr){
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw", enc.encode(keyStr), {name:"HMAC", hash:"SHA-512"}, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, enc.encode(msgStr));
+  return hex(sig);
+}
+async function sha256(str){
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return hex(buf);
+}
+
+// Mirrors bot_dev.verify_roll EXACTLY:
+//   h = HMAC_SHA512(server_seed, f"{client_seed}-{nonce}").hexdigest()
+//   frac = int(h[:13], 16) / 2**52
+//   if (min,max) != (0,1): roll = int(frac*(max-min+1)+min)
+async function compute(server, client, nonce, min, max){
+  const h = await hmacSha512(server, `${client}-${nonce}`);
+  const bits = Number(BigInt("0x" + h.slice(0, 13)));   // 52 bits, exact in float64
+  const frac = bits / 2**52;
+  let roll;
+  if (min === 0 && max === 1) roll = frac;              // raw float (e.g. chest odds)
+  else roll = Math.floor(frac * (max - min + 1) + min); // truncation == floor (frac>=0)
+  return {h, bits, frac, roll};
+}
+
+async function run(){
+  if (!window.crypto || !crypto.subtle){
+    alert("This browser/context can't run Web Crypto (needed for HMAC-SHA512). "
+      + "Open this page over https (e.g. the hosted link) and try again.");
+    return;
+  }
+  const server = $("server").value.trim();
+  const client = $("client").value.trim();
+  const nonce  = parseInt($("nonce").value.trim() || "0", 10);
+  const min    = parseInt($("min").value.trim() || "1", 10);
+  const max    = parseInt($("max").value.trim() || "100", 10);
+  const expectedRaw = $("roll").value.trim();
+  const commit = $("commit").value.trim().toLowerCase();
+
+  if (!server || !client){
+    alert("Enter at least a server seed and a client seed.");
+    return;
+  }
+
+  const {h, bits, frac, roll} = await compute(server, client, nonce, min, max);
+  const isRaw = (min === 0 && max === 1);
+  const rollShown = isRaw ? roll.toFixed(8) : String(roll);
+
+  $("out").style.display = "block";
+  $("computed").textContent = rollShown;
+  $("rangeline").innerHTML =
+    `Range <b>${min}–${max}</b>, nonce <b>${nonce}</b>` +
+    (isRaw ? " (raw 0–1 value)" : "");
+
+  // verdict vs expected
+  const vEl = $("verdict");
+  if (expectedRaw === ""){
+    vEl.className = "verdict";
+    vEl.innerHTML = "Computed roll:";
+  } else {
+    const matches = isRaw
+      ? Math.abs(parseFloat(expectedRaw) - roll) < 1e-9
+      : parseInt(expectedRaw, 10) === roll;
+    vEl.className = "verdict " + (matches ? "ok" : "no");
+    vEl.innerHTML = matches
+      ? "✅ MATCH — this roll is legit"
+      : `❌ NO MATCH — bot showed ${expectedRaw}, math gives ${rollShown}`;
+  }
+
+  // commitment check
+  const cEl = $("commitline");
+  if (commit){
+    const sh = await sha256(server);
+    const ok = sh === commit;
+    cEl.innerHTML = ok
+      ? `<span class="ok">✅ Server seed matches the committed hash</span>`
+      : `<span class="no">❌ Server seed does NOT match the committed hash</span>` +
+        `<div class="kv">computed sha256: <b>${sh}</b></div>`;
+  } else {
+    cEl.innerHTML = "";
+  }
+
+  // math breakdown
+  $("m1").innerHTML = `1) message = "<b>${client}-${nonce}</b>"`;
+  $("m2").innerHTML = `2) HMAC-SHA512(server, message) = <b>${h}</b>`;
+  $("m3").innerHTML = `3) first 13 hex = <b>${h.slice(0,13)}</b> → ${bits} ÷ 2^52 = <b>${frac}</b>`;
+  $("m4").innerHTML = isRaw
+    ? `4) range is 0–1, so roll = the raw value = <b>${rollShown}</b>`
+    : `4) floor(${frac} × (${max}−${min}+1) + ${min}) = <b>${roll}</b>`;
+}
+
+// Pre-fill from URL params, then auto-verify if a server+client seed are present.
+// Param names: server, client, nonce, min, max, roll, commit
+(function(){
+  const p = new URLSearchParams(location.search);
+  const map = {server:"server", client:"client", nonce:"nonce",
+               min:"min", max:"max", roll:"roll", commit:"commit"};
+  let haveCore = false;
+  for (const [param, id] of Object.entries(map)){
+    const v = p.get(param);
+    if (v !== null){ $(id).value = v; if (param==="server"||param==="client") haveCore = true; }
+  }
+  $("go").addEventListener("click", run);
+  if (p.get("server") && p.get("client")) run();
+})();
+</script>
+</body>
+</html>
